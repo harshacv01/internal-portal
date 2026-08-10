@@ -1,6 +1,6 @@
 import { desc, eq } from "drizzle-orm";
 
-import { db } from "@/lib/db";
+import { getDb } from "@/lib/db";
 import {
   type AnnouncementCategory,
   announcements,
@@ -23,7 +23,7 @@ export type Announcement = {
 export async function listAnnouncements(
   category?: AnnouncementCategory,
 ): Promise<Announcement[]> {
-  const rows = await db
+  const rows = await getDb()
     .select({
       id: announcements.id,
       title: announcements.title,
@@ -50,6 +50,8 @@ export async function createAnnouncement(
   input: CreateAnnouncementInput,
   authorId: string,
 ): Promise<Announcement> {
+  const db = getDb();
+
   const [row] = await db
     .insert(announcements)
     .values({ ...input, authorId })

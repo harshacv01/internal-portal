@@ -14,7 +14,15 @@ export const SESSION_COOKIE = "portal_session";
 const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 7;
 
 const ALGORITHM = "HS256";
-const secretKey = new TextEncoder().encode(env.SESSION_SECRET);
+
+// Read on first use rather than at import, so the build does not need a secret.
+let secretKey: Uint8Array | null = null;
+function getSecretKey(): Uint8Array {
+  if (!secretKey) {
+    secretKey = new TextEncoder().encode(env.SESSION_SECRET);
+  }
+  return secretKey;
+}
 
 const sessionPayloadSchema = z.object({
   sub: z.uuid(),
@@ -35,7 +43,7 @@ export async function signSessionToken(user: SessionUser): Promise<string> {
     .setSubject(user.sub)
     .setIssuedAt()
     .setExpirationTime(`${SESSION_MAX_AGE_SECONDS}s`)
-    .sign(secretKey);
+    .sign(getSecretKey());
 }
 
 // Null for anything untrustworthy: bad signature, expired, or a payload shape
@@ -46,7 +54,7 @@ export async function verifySessionToken(
   if (!token) return null;
 
   try {
-    const { payload } = await jwtVerify(token, secretKey, {
+    const { payload } = await jwtVerify(token, getSecretKey(), {
       algorithms: [ALGORITHM],
     });
 
